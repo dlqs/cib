@@ -413,13 +413,13 @@ def dist():
     run('cp -au repos/binaryen/bin/binaryen.wasm dist/binaryen.wasm')
     run('cp -au repos/binaryen/LICENSE dist/binaryen-LICENSE')
 
-    if not os.path.exists('repos/eos-altjs/node_modules'):
-        run('cd repos/eos-altjs && npm i && npm run build')
+    #if not os.path.exists('repos/eos-altjs/node_modules'):
+        #run('cd repos/eos-altjs && npm i && npm run build')
     # run('cp -au repos/eos-altjs/dist/eos-altjs-rel.js dist')
-    run('cp -au repos/eos-altjs/dist/eos-altjs-debug.js dist/eos-altjs-rel.js')
+    #run('cp -au repos/eos-altjs/dist/eos-altjs-debug.js dist/eos-altjs-rel.js')
 
 
-    run('cp -au src/clang.html src/eos.html src/process.js src/process-manager.js src/process-clang-format.js src/wasm-tools.js dist')
+    run('cp -au src/clang.html src/process.js src/process-manager.js src/process-clang-format.js src/wasm-tools.js dist')
     run('cp -au src/process-clang.js src/process-runtime.js dist')
 
 def boost():
@@ -582,35 +582,36 @@ def http():
         pass
 
 commands = [
-    ('G', 'git-https',      None,               'store_true',   False,          False,          "Use https for git clone"),
-    ('B', 'bash',           bash,               'store_true',   False,          False,          "Run bash with environment set up"),
-    ('f', 'format',         format,             'store_true',   False,          False,          "Format sources"),
     ('c', 'clone',          clone,              'store_true',   True,           True,           "Clone repositories. Doesn't touch repositories which already exist."),
-    ('s', 'status',         status,             'store_true',   False,          False,          "git status"),
-    ('',  'pull',           pull,               'store_true',   False,          False,          "git pull"),
-    ('',  'checkout',       checkout,           'store_true',   False,          False,          "git checkout"),
-    ('',  'merge',          merge,              'store_true',   False,          False,          "git merge upstream"),
-    ('',  'tag',            createTags,         'store',        False,          False,          "create and push git tags"),
-    ('',  'push',           push,               'store_true',   False,          False,          "git push"),
     ('C', 'cmake',          cmake,              'store_true',   True,           True,           "Build cmake if not already built"),
     ('l', 'llvm',           llvm,               'store_true',   True,           True,           "Build llvm if not already built"),
-    ('',  'no86',           llvmNo86,           'store_true',   False,          False,          "Build llvm without X86 if not already built"),
-    ('',  'fastcomp',       fastcomp,           'store_true',   useFastcomp,    useFastcomp,    "Build fastcomp if not already built"),
-    ('',  'wabt',           wabt,               'store_true',   False,          False,          "Build wabt if not already built"),
     ('y', 'binaryen',       binaryen,           'store_true',   True,           True,           "Build binaryen if not already built"),
     ('e', 'emscripten',     emscripten,         'store_true',   True,           True,           "Prepare emscripten by compiling say-hello.cpp"),
     ('t', 'tools',          tools,              'store_true',   True,           True,           "Build tools if not already built"),
     ('b', 'llvm-browser',   llvmBrowser,        'store_true',   True,           True,           "Build llvm in-browser components"),
     ('d', 'dist',           dist,               'store_true',   True,           True,           "Fill dist/"),
     ('r', 'rtl',            rtl,                'store_true',   True,           False,          "Build RTL"),
-    ('R', 'rtl-eos',        rtlEos,             'store_true',   False,          True,           "Build RTL-EOS"),
     ('1', 'app-1',          appClangFormat,     'store_true',   True,           False,          "Build app 1: clang-format"),
     ('2', 'app-2',          appClang,           'store_true',   True,           False,          "Build app 2: clang"),
-    ('n', 'app-n',          appClangNative,     'store_true',   False,          False,          "Build app 2: clang, native"),
     ('3', 'app-3',          appRuntime,         'store_true',   True,           False,          "Build app 3: runtime"),
-    ('4', 'app-4',          appClangEos,        'store_true',   False,          True,           "Build app 4: clang-eos"),
-    ('N', 'app-N',          appClangEosNative,  'store_true',   False,          False,          "Build app 4: clang-eos, native"),
-    ('H', 'http',           http,               'store_true',   False,          False,          "http-server"),
+    ('n', 'app-n',          appClangNative,     'store_true',   False,          False,          "Build app 2: clang, native"),
+    ('G', 'git-https',      None,               'store_true',   False,          False,          "Use https for git clone"),
+
+    #('B', 'bash',           bash,               'store_true',   False,          False,          "Run bash with environment set up"),
+    #('f', 'format',         format,             'store_true',   False,          False,          "Format sources"),
+    #('s', 'status',         status,             'store_true',   False,          False,          "git status"),
+    #('',  'pull',           pull,               'store_true',   False,          False,          "git pull"),
+    #('',  'checkout',       checkout,           'store_true',   False,          False,          "git checkout"),
+    #('',  'merge',          merge,              'store_true',   False,          False,          "git merge upstream"),
+    #('',  'tag',            createTags,         'store',        False,          False,          "create and push git tags"),
+    #('',  'push',           push,               'store_true',   False,          False,          "git push"),
+    #('',  'no86',           llvmNo86,           'store_true',   False,          False,          "Build llvm without X86 if not already built"),
+    #('',  'fastcomp',       fastcomp,           'store_true',   useFastcomp,    useFastcomp,    "Build fastcomp if not already built"),
+    #('',  'wabt',           wabt,               'store_true',   False,          False,          "Build wabt if not already built"),
+    #('R', 'rtl-eos',        rtlEos,             'store_true',   False,          True,           "Build RTL-EOS"),
+    #('4', 'app-4',          appClangEos,        'store_true',   False,          True,           "Build app 4: clang-eos"),
+    #('N', 'app-N',          appClangEosNative,  'store_true',   False,          False,          "Build app 4: clang-eos, native"),
+    #('H', 'http',           http,               'store_true',   False,          False,          "http-server"),
 ]
 
 parser = argparse.ArgumentParser()

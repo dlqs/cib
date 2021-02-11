@@ -23,6 +23,10 @@
 import argparse, os, subprocess, sys
 from urllib.parse import urlparse
 
+import http.server
+import socketserver
+import os
+
 useTag = 'cib-013'      # --clone and --checkout retrieve this tag
 #useTag = None          # --clone and --checkout retrieve branches
 
@@ -550,7 +554,7 @@ def appRuntime():
     run('cp build/rtl/rtl ' + browserRuntimeBuild + 'runtime.wasm')
     run('cp -au ' + browserRuntimeBuild + 'runtime.js ' + browserRuntimeBuild + 'runtime.wasm dist')
 
-def http():
+def httpServer():
     run('mkdir -p build/http')
     run('cd build/http && ln -sf ' +
         browserClangFormatBuild + 'clang-format.* ' +
@@ -573,13 +577,13 @@ def http():
         '.')
     run('cd build/http && ln -sf ' + browserClangBuild + 'clang-opt.wasm clang.wasm')
     run('cd build/http && ln -sf ' + browserClangEosBuild + 'clang-eos-opt.wasm clang-eos.wasm')
-    #try:
-    #    if 'HTTP_SERVER' in os.environ:
-    #        run('cd build/http && ' + os.environ['HTTP_SERVER'])
-    #    else:
-    #        run('cd build/http && http-server -c-1')
-    #except KeyboardInterrupt:
-    #    pass
+
+    os.chdir("build/http")
+    PORT = 8000
+    Handler = http.server.SimpleHTTPRequestHandler
+    with socketserver.TCPServer(("", PORT), Handler) as httpd:
+        print("serving at port", PORT)
+        httpd.serve_forever()
 
 commands = [
     ('c', 'clone',          clone,              'store_true',   True,           True,           "Clone repositories. Doesn't touch repositories which already exist."),
@@ -596,7 +600,7 @@ commands = [
     ('3', 'app-3',          appRuntime,         'store_true',   True,           False,          "Build app 3: runtime"),
     ('n', 'app-n',          appClangNative,     'store_true',   False,          False,          "Build app 2: clang, native"),
     ('G', 'git-https',      None,               'store_true',   False,          False,          "Use https for git clone"),
-    ('H', 'http',           http,               'store_true',   True,          False,          "http-server"),
+    ('H', 'http',           httpServer,               'store_true',   True,          False,          "http-server"),
 
     #('B', 'bash',           bash,               'store_true',   False,          False,          "Run bash with environment set up"),
     #('f', 'format',         format,             'store_true',   False,          False,          "Format sources"),

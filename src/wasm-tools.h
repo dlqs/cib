@@ -296,6 +296,4 @@ void read_module(Module& module);
 void link(Linked& linked, uint32_t memory_offset = default_memory_offset,
           uint32_t element_offset = default_element_offset);
 
-void linkEos(Linked& linked, Module& main_module, uint32_t stack_size);
-
 } // namespace WasmTools

@@ -20,12 +20,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
-import argparse, os, subprocess, sys
+import argparse, os, subprocess, sys, http.server, socketserver
 from urllib.parse import urlparse
-
-import http.server
-import socketserver
-import os
 
 useTag = 'cib-013'      # --clone and --checkout retrieve this tag
 #useTag = None          # --clone and --checkout retrieve branches
@@ -52,7 +48,6 @@ optimizerBuild = root + 'build/optimizer-' + optimizerBuildType + '/'
 rtlBuildDir = root + 'build/rtl/'
 browserClangFormatBuild = root + 'build/clang-format-browser-' + browserClangFormatBuildType + '/'
 browserClangBuild = root + 'build/clang-browser-' + browserClangBuildType + '/'
-browserClangEosBuild = root + 'build/clang-eos-browser-' + browserClangBuildType + '/'
 browserRuntimeBuild = root + 'build/runtime-browser-' + browserRuntimeBuildType + '/'
 
 gitProtocol = 'https://github.com/'
@@ -160,11 +155,6 @@ repos = [
     ('repos/emscripten', 'tbfleming/cib-emscripten.git', 'kripken/emscripten.git', True, 'incoming', 'cib'),
     ('repos/binaryen', 'tbfleming/cib-binaryen.git', 'WebAssembly/binaryen.git', True, 'master', 'cib'),
     ('repos/zip.js', 'gildas-lormeau/zip.js.git', 'gildas-lormeau/zip.js.git', False, '3e7920810f63d5057ef6028833243105521da369', '3e7920810f63d5057ef6028833243105521da369'),
-    ('repos/eos', 'tbfleming/cib-eos.git', 'EOSIO/eos.git', True, 'dawn-v3.0.0', 'cib'),
-    ('repos/eos-musl', 'tbfleming/cib-eos-musl.git', 'EOSIO/eos-musl.git', True, 'eosio', 'cib'),
-    ('repos/eos-libcxx', 'EOSIO/libcxx.git', 'EOSIO/libcxx.git', False, '2880ac42909d4bb29687ed079f8bb4405c3b0869', '2880ac42909d4bb29687ed079f8bb4405c3b0869'),
-    ('repos/magic-get', 'apolukhin/magic_get.git', 'apolukhin/magic_get.git', False, '8b575abe4359abd72bb9556f64ee33aa2a6f3583', '8b575abe4359abd72bb9556f64ee33aa2a6f3583'),
-    ('repos/eos-altjs', 'tbfleming/eos-altjs', 'tbfleming/eos-altjs', True, 'master', 'cib'),
 ]
 
 def clone():
@@ -367,8 +357,6 @@ def httpServer():
         browserClangFormatBuild + 'clang-format.* ' +
         browserClangBuild + 'clang.data ' +
         browserClangBuild + 'clang.js ' +
-        browserClangEosBuild + 'clang-eos.data ' +
-        browserClangEosBuild + 'clang-eos.js ' +
         browserRuntimeBuild + 'runtime.* ' +
         '../../dist/monaco-editor ' +
         '../../dist/golden-layout ' +
@@ -376,14 +364,11 @@ def httpServer():
         '../../dist/zip.js ' +
         '../../dist/binaryen.js ' +
         '../../dist/binaryen.wasm ' +
-        '../../dist/eos-altjs-rel.js ' +
         '../../src/clang.html ' +
-        '../../src/eos.html ' +
         '../../src/process*.js ' +
         '../../src/wasm-tools.js ' +
         '.')
     run('cd build/http && ln -sf ' + browserClangBuild + 'clang-opt.wasm clang.wasm')
-    run('cd build/http && ln -sf ' + browserClangEosBuild + 'clang-eos-opt.wasm clang-eos.wasm')
 
     os.chdir("build/http")
     PORT = 8000

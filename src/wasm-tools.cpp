@@ -1376,46 +1376,4 @@ void link(Linked& linked, uint32_t memory_offset, uint32_t element_offset) {
     push_sec_linking(linked);
 }
 
-void linkEos(Linked& linked, Module& main_module, uint32_t stack_size) {
-    auto* sp = create_sp_export(linked);
-    auto& start_module = create_start_function(linked);
-    link_symbols(linked);
-
-    std::vector<LinkedSymbol*> queue;
-    mark_module(linked, main_module, queue);
-    mark_module(linked, start_module, queue);
-    add_export_to_queue(linked, "init", queue);
-    add_export_to_queue(linked, "apply", queue);
-    mark_symbols_in_queue(linked, queue);
-
-    map_function_types(linked);
-    allocate_memory(linked, 16);
-
-    if (sp->linked_symbol->is_marked) {
-        linked.memory_size += stack_size;
-        sp->module->globals[*sp->export_global_index].init_u32 =
-            linked.memory_size;
-    }
-
-    allocate_functions(linked);
-    auto need_start = fill_start_function_code(linked, start_module);
-    allocate_code(linked);
-    allocate_globals(linked);
-    allocate_elements(linked, 1);
-    relocate(linked);
-    fill_header(linked);
-    push_sec_type(linked);
-    push_sec_import(linked, true, false);
-    push_sec_function(linked);
-    push_sec_table(linked);
-    push_sec_memory(linked);
-    push_sec_global(linked);
-    push_sec_export(linked);
-    if (need_start)
-        push_sec_start(linked, start_module.replacement_functions[0]);
-    push_sec_elem(linked);
-    push_sec_code(linked);
-    push_sec_data(linked);
-}
-
 } // namespace WasmTools

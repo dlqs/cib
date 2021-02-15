@@ -23,34 +23,25 @@
 import argparse, os, subprocess, sys, http.server, socketserver
 from urllib.parse import urlparse
 
-useTag = 'cib-013'      # --clone and --checkout retrieve this tag
-#useTag = None          # --clone and --checkout retrieve branches
+USETAG = 'cib-013'      # --clone and --checkout retrieve this tag
 
 reoptClang = True
 
-llvmBuildType = 'Release'
-llvmBrowserBuildType = 'Release'
-binaryenBuildType = 'RelWithDebInfo'
-optimizerBuildType = 'RelWithDebInfo'
-browserClangFormatBuildType = 'Release'
-browserClangBuildType = 'Release'
-browserRuntimeBuildType = 'Debug'
+LLVM_BROWSER_BUILD_TYPE = 'Release'
+OPTIMIZER_BUILD_TYPE = 'RelWithDebInfo'
+BROWSER_CLANG_FORMAT_BUILD_TYPE = 'Release'
+BROWSER_CLANG_BUILD_TYPE = 'Release'
+BROWSER_RUNTIME_BUILD_TYPE = 'Debug'
 
-root = os.path.dirname(os.path.abspath(__file__)) + '/'
-cmakeInstall = root + 'install/cmake/'
-llvmBuild = root + 'build/llvm-' + llvmBuildType + '/'
-llvmInstall = root + 'install/llvm-' + llvmBuildType + '/'
-llvmBrowserBuild = root + 'build/llvm-browser-' + llvmBrowserBuildType + '/'
-llvmBrowserInstall = root + 'install/llvm-browser-' + llvmBrowserBuildType + '/'
-binaryenBuild = root + 'build/binaryen-' + binaryenBuildType + '/'
-binaryenInstall = root + 'install/binaryen-' + binaryenBuildType + '/'
-optimizerBuild = root + 'build/optimizer-' + optimizerBuildType + '/'
-rtlBuildDir = root + 'build/rtl/'
-browserClangFormatBuild = root + 'build/clang-format-browser-' + browserClangFormatBuildType + '/'
-browserClangBuild = root + 'build/clang-browser-' + browserClangBuildType + '/'
-browserRuntimeBuild = root + 'build/runtime-browser-' + browserRuntimeBuildType + '/'
+ROOT = os.path.dirname(os.path.abspath(__file__)) + '/'
 
-gitProtocol = 'https://github.com/'
+llvmBrowserBuild = ROOT + 'build/llvm-browser-' + LLVM_BROWSER_BUILD_TYPE + '/'
+llvmBrowserInstall = ROOT + 'install/llvm-browser-' + LLVM_BROWSER_BUILD_TYPE + '/'
+optimizerBuild = ROOT + 'build/optimizer-' + OPTIMIZER_BUILD_TYPE + '/'
+rtlBuildDir = ROOT + 'build/rtl/'
+browserClangFormatBuild = ROOT + 'build/clang-format-browser-' + BROWSER_CLANG_FORMAT_BUILD_TYPE + '/'
+browserClangBuild = ROOT + 'build/clang-browser-' + BROWSER_CLANG_BUILD_TYPE + '/'
+browserRuntimeBuild = ROOT + 'build/runtime-browser-' + BROWSER_RUNTIME_BUILD_TYPE + '/'
 
 llvmBrowserTargets = [
     'clangAnalysis',
@@ -105,23 +96,8 @@ llvmBrowserTargets = [
     'LLVMWebAssemblyInfo',
 ]
 
-cores = subprocess.check_output("grep 'processor' /proc/cpuinfo | wc -l", shell=True).decode('utf-8').strip()
-parallel = '-j ' + cores
-
-os.environ["PATH"] = os.pathsep.join([
-    root + 'build/node/bin',
-    root + 'repos/emscripten',
-    cmakeInstall + 'bin',
-    llvmInstall + 'bin',
-    binaryenInstall + 'bin',
-    os.environ["PATH"],
-])
-os.environ['BINARYEN'] = binaryenInstall
-os.environ['EMSCRIPTEN_NATIVE_OPTIMIZER'] = optimizerBuild + 'optimizer'
-os.environ['LD_LIBRARY_PATH'] = llvmInstall + 'lib'
-os.environ['npm_config_cache'] = root + "build/.npm"
-os.environ['npm_config_init_module'] = root + "build/.npm-init.js"
-os.environ['npm_config_userconfig'] = root + "build/.npmrc"
+CORES = subprocess.check_output("grep 'processor' /proc/cpuinfo | wc -l", shell=True).decode('utf-8').strip()
+PARALLEL = '-j ' + CORES
 
 def run(args):
     print('build.py:', args)
@@ -145,73 +121,61 @@ def download(url, basename=None):
         run('mkdir -p download')
         run('cd download && wget ' + url + ' -O ' + basename)
 
-repos = [
-    ('repos/llvm', 'tbfleming/cib-llvm.git', 'llvm-mirror/llvm.git', True, 'master', 'cib'),
-    ('repos/llvm/tools/clang', 'tbfleming/cib-clang.git', 'llvm-mirror/clang.git', True, 'master', 'cib'),
-    ('repos/llvm/tools/lld', 'tbfleming/cib-lld.git', 'llvm-mirror/lld.git', True, 'master', 'master'),
-    ('repos/llvm/projects/compiler-rt', 'tbfleming/cib-compiler-rt.git', 'llvm-mirror/compiler-rt.git', True, 'master', 'master'),
-    ('repos/llvm/projects/libcxx', 'tbfleming/cib-libcxx.git', 'llvm-mirror/libcxx.git', True, 'master', 'master'),
-    ('repos/llvm/projects/libcxxabi', 'tbfleming/cib-libcxxabi.git', 'llvm-mirror/libcxxabi.git', True, 'master', 'master'),
-    ('repos/emscripten', 'tbfleming/cib-emscripten.git', 'kripken/emscripten.git', True, 'incoming', 'cib'),
-    ('repos/binaryen', 'tbfleming/cib-binaryen.git', 'WebAssembly/binaryen.git', True, 'master', 'cib'),
-    ('repos/zip.js', 'gildas-lormeau/zip.js.git', 'gildas-lormeau/zip.js.git', False, '3e7920810f63d5057ef6028833243105521da369', '3e7920810f63d5057ef6028833243105521da369'),
-]
-
-def clone():
+def clone(repos):
     for (path, url, upstream, isPushable, upstreamBranch, branch) in repos:
         if os.path.isdir(path):
             continue
-        if useTag and isPushable:
-            branch = useTag
+        if USETAG and isPushable:
+            branch = USETAG
         dir = os.path.dirname(path)
         base = os.path.basename(path)
         run('mkdir -p ' + dir)
-        run('cd ' + dir + ' && git clone ' + gitProtocol + url + ' ' + base)
-        run('cd ' + path + ' && git remote add upstream ' + gitProtocol + upstream)
+        run('cd ' + dir + ' && git clone https://github.com/' + url + ' ' + base)
+        run('cd ' + path + ' && git remote add upstream https://github.com/' + upstream)
         run('cd ' + path + ' && git checkout ' + branch)
 
-def cmake():
-    download('https://cmake.org/files/v3.11/cmake-3.11.0.tar.gz')
-    if not os.path.exists('build/cmake-3.11.0'):
+def cmake(cmakeInstall):
+    download('https://cmake.org/files/v3.11/cmake-3.19.4.tar.gz')
+    download('https://github.com/Kitware/CMake/releases/download/v3.19.4/cmake-3.19.4.tar.gz')
+    if not os.path.exists('build/cmake-3.19.4'):
         run('mkdir -p build')
-        run('cd build && tar xf ../download/cmake-3.11.0.tar.gz')
-        run('cd build/cmake-3.11.0 && ./bootstrap --prefix=' + cmakeInstall + ' --parallel=' + cores)
-        run('cd build/cmake-3.11.0 && make ' + parallel)
-        run('cd build/cmake-3.11.0 && make install ' + parallel)
+        run('cd build && tar xf ../download/cmake-3.19.4.tar.gz')
+        run('cd build/cmake-3.19.4 && ./bootstrap --prefix=' + cmakeInstall + ' --PARALLEL=' + CORES)
+        run('cd build/cmake-3.19.4 && make ' + PARALLEL)
+        run('cd build/cmake-3.19.4 && make install ' + PARALLEL)
 
-def llvm():
+def llvm(llvmBuild, llvmInstall, llvmBuildType):
     if not os.path.isdir(llvmBuild):
         run('mkdir -p ' + llvmBuild)
         run('cd ' + llvmBuild + ' && time -p cmake -G "Ninja"' +
             ' -DCMAKE_INSTALL_PREFIX=' + llvmInstall +
             ' -DCMAKE_BUILD_TYPE=' + llvmBuildType +
-            ' -DLLVM_TARGETS_TO_BUILD=X86' +
-            ' -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly' +
-            ' ' + root + 'repos/llvm')
+            ' -DLLVM_TARGETS_TO_BUILD=X86;WebAssembly ' +
+            ROOT + 'repos/llvm-project/llvm')
     run('cd ' + llvmBuild + ' && time -p ninja')
     if not os.path.isdir(llvmInstall):
         run('mkdir -p ' + llvmInstall)
         run('cd ' + llvmBuild + ' && time -p ninja install install-cxx install-cxxabi install-compiler-rt')
 
-def binaryen():
+def binaryen(binaryenBuild, binaryenInstall, binaryenBuildType):
     if not os.path.isdir(binaryenBuild):
         run('mkdir -p ' + binaryenBuild)
         run('cd ' + binaryenBuild + ' && time -p cmake -G "Ninja"' +
             ' -DCMAKE_INSTALL_PREFIX=' + binaryenInstall +
             ' -DCMAKE_BUILD_TYPE=' + binaryenBuildType +
-            ' ' + root + 'repos/binaryen')
+            ' ' + ROOT + 'repos/binaryen')
     run('cd ' + binaryenBuild + ' && time -p ninja')
     if not os.path.isdir(binaryenInstall):
         run('mkdir -p ' + binaryenInstall)
         run('cd ' + binaryenBuild + ' && time -p ninja install')
 
-def emscripten():
+def emscripten(binaryenInstall):
     configFile = os.path.expanduser('~') + '/.emscripten'
     if not os.path.isdir(optimizerBuild):
         run('mkdir -p ' + optimizerBuild)
         run('cd ' + optimizerBuild + ' && time -p cmake -G "Ninja"' +
-            ' -DCMAKE_BUILD_TYPE=' + optimizerBuildType +
-            ' ' + root + 'repos/emscripten/tools/optimizer')
+            ' -DCMAKE_BUILD_TYPE=' + OPTIMIZER_BUILD_TYPE +
+            ' ' + ROOT + 'repos/emscripten/tools/optimizer')
     run('cd ' + optimizerBuild + ' && time -p ninja')
     if not os.path.exists(configFile):
         run('em++')
@@ -220,7 +184,7 @@ def emscripten():
         run('mkdir -p build/dummy')
         run('cd build/dummy && em++ ../../src/say-hello.cpp -o say-hello.html')
 
-def tools():
+def tools(llvmInstall):
     if not os.path.isdir('build/tools'):
         run('mkdir -p build/tools')
         run('cd build/tools &&' +
@@ -230,7 +194,7 @@ def tools():
             ' ../../src')
     run('cd build/tools && ninja cib-link cib-ar combine-data')
 
-def llvmBrowser():
+def llvmBrowser(llvmInstall, llvmBuild):
     if not os.path.isdir(llvmBrowserBuild):
         run('mkdir -p ' + llvmBrowserBuild)
         run('cd ' + llvmBrowserBuild + ' && ' +
@@ -246,7 +210,7 @@ def llvmBrowser():
             ' -DLLVM_ENABLE_EXPENSIVE_CHECKS=OFF' +
             ' -DLLVM_ENABLE_BACKTRACES=OFF' +
             ' -DCMAKE_INSTALL_PREFIX=' + llvmBrowserInstall + '' +
-            ' -DCMAKE_BUILD_TYPE=' + llvmBrowserBuildType +
+            ' -DCMAKE_BUILD_TYPE=' + LLVM_BROWSER_BUILD_TYPE +
             ' -DLLVM_TARGETS_TO_BUILD=' +
             ' -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly' +
             ' -DLLVM_BUILD_TOOLS=OFF' +
@@ -255,7 +219,7 @@ def llvmBrowser():
             ' -DLLVM_INCLUDE_TESTS=OFF' +
             ' -DLLVM_TABLEGEN=' + llvmInstall + 'bin/llvm-tblgen' +
             ' -DCLANG_TABLEGEN=' + llvmBuild + 'bin/clang-tblgen' +
-            ' ' + root + 'repos/llvm')
+            ' ' + ROOT + 'repos/llvm')
     run('cd ' + llvmBrowserBuild + ' && time -p ninja ' + ' '.join(llvmBrowserTargets))
 
 def node():
@@ -302,7 +266,7 @@ def dist():
     run('cp -au src/clang.html src/process.js src/process-manager.js src/process-clang-format.js src/wasm-tools.js dist')
     run('cp -au src/process-clang.js src/process-runtime.js dist')
 
-def rtl():
+def rtl(llvmBuild):
     if not os.path.isdir(rtlBuildDir):
         run('mkdir -p ' + rtlBuildDir)
         run('cd ' + rtlBuildDir + ' &&' +
@@ -329,7 +293,7 @@ def app(name, buildType, buildDir, prepBuildDir=None, env=''):
         run('mkdir -p dist')
 
 def appClangFormat():
-    app('clang-format', browserClangFormatBuildType, browserClangFormatBuild)
+    app('clang-format', BROWSER_CLANG_FORMAT_BUILD_TYPE, browserClangFormatBuild)
     run('cp -au ' + browserClangFormatBuild + 'clang-format.js ' + browserClangFormatBuild + 'clang-format.wasm dist')
 
 def appClang():
@@ -338,7 +302,7 @@ def appClang():
         run('cp -auv repos/emscripten/system/include ' + browserClangBuild + 'usr')
         run('cp -auv repos/emscripten/system/lib/libcxxabi/include ' + browserClangBuild + 'usr/lib/libcxxabi')
         run('cp -auv repos/emscripten/system/lib/libc/musl/arch/emscripten ' + browserClangBuild + 'usr/lib/libc/musl/arch')
-    app('clang', browserClangBuildType, browserClangBuild, prepBuildDir)
+    app('clang', BROWSER_CLANG_BUILD_TYPE, browserClangBuild, prepBuildDir)
     if(reoptClang):
         run('cd ' + browserClangBuild + ' && wasm-opt -Os clang.wasm -o clang-opt.wasm')
     else:
@@ -347,7 +311,7 @@ def appClang():
     run('cp -au ' + browserClangBuild + 'clang-opt.wasm dist/clang.wasm')
 
 def appRuntime():
-    app('runtime', browserRuntimeBuildType, browserRuntimeBuild, env='EMCC_FORCE_STDLIBS=1')
+    app('runtime', BROWSER_RUNTIME_BUILD_TYPE, browserRuntimeBuild, env='EMCC_FORCE_STDLIBS=1')
     run('cp build/rtl/rtl ' + browserRuntimeBuild + 'runtime.wasm')
     run('cp -au ' + browserRuntimeBuild + 'runtime.js ' + browserRuntimeBuild + 'runtime.wasm dist')
 
@@ -378,17 +342,56 @@ def httpServer():
         httpd.serve_forever()
 
 def main():
-    clone()
-    cmake()
-    llvm()
-    binaryen()
-    emscripten()
-    tools()
-    llvmBrowser()
-    dist()
-    rtl()
-    appClangFormat()
-    appClang()
-    appRuntime()
+    repos = [
+        ('repos/llvm-project', 'llvm/llvm-project.git', 'llvm/llvm-project.git', True, 'main', 'main'),
+
+        #('repos/llvm', 'tbfleming/cib-llvm.git', 'llvm-mirror/llvm.git', True, 'master', 'cib'),
+        ('repos/llvm/tools/clang', 'tbfleming/cib-clang.git', 'llvm-mirror/clang.git', True, 'master', 'cib'),
+        ('repos/llvm/tools/lld', 'tbfleming/cib-lld.git', 'llvm-mirror/lld.git', True, 'master', 'master'),
+        ('repos/llvm/projects/compiler-rt', 'tbfleming/cib-compiler-rt.git', 'llvm-mirror/compiler-rt.git', True, 'master', 'master'),
+        ('repos/llvm/projects/libcxx', 'tbfleming/cib-libcxx.git', 'llvm-mirror/libcxx.git', True, 'master', 'master'),
+        ('repos/llvm/projects/libcxxabi', 'tbfleming/cib-libcxxabi.git', 'llvm-mirror/libcxxabi.git', True, 'master', 'master'),
+        ('repos/emscripten', 'tbfleming/cib-emscripten.git', 'kripken/emscripten.git', True, 'incoming', 'cib'),
+        ('repos/binaryen', 'tbfleming/cib-binaryen.git', 'WebAssembly/binaryen.git', True, 'master', 'cib'),
+        ('repos/zip.js', 'gildas-lormeau/zip.js.git', 'gildas-lormeau/zip.js.git', False, '3e7920810f63d5057ef6028833243105521da369', '3e7920810f63d5057ef6028833243105521da369'),
+    ]
+    clone(repos)
+
+    cmakeInstall = ROOT + 'install/cmake/'
+    llvmBuildType = 'Release'
+    llvmBuild = ROOT + 'build/llvm-' + llvmBuildType + '/'
+    llvmInstall = ROOT + 'install/llvm-' + llvmBuildType + '/'
+    binaryenBuildType = 'RelWithDebInfo'
+    binaryenBuild = ROOT + 'build/binaryen-' + binaryenBuildType + '/'
+    binaryenInstall = ROOT + 'install/binaryen-' + binaryenBuildType + '/'
+    os.environ["PATH"] = os.pathsep.join([
+        ROOT + 'build/node/bin',
+        ROOT + 'repos/emscripten',
+        cmakeInstall + 'bin',
+        llvmInstall + 'bin',
+        binaryenInstall + 'bin',
+        os.environ["PATH"],
+    ])
+    os.environ['BINARYEN'] = binaryenInstall
+    os.environ['EMSCRIPTEN_NATIVE_OPTIMIZER'] = optimizerBuild + 'optimizer'
+    os.environ['LD_LIBRARY_PATH'] = llvmInstall + 'lib'
+    os.environ['npm_config_cache'] = ROOT + "build/.npm"
+    os.environ['npm_config_init_module'] = ROOT + "build/.npm-init.js"
+    os.environ['npm_config_userconfig'] = ROOT + "build/.npmrc"
+
+    cmake(cmakeInstall)
+    llvm(llvmBuild, llvmInstall, llvmBuildType)
+    binaryen(binaryenBuild, binaryenInstall, binaryenBuildType)
+
+    # emscripten(binaryenInstall)
+
+    tools(llvmInstall)
+
+    # llvmBrowser()
+    # dist()
+    # rtl()
+    # appClangFormat()
+    # appClang()
+    # appRuntime()
 
 main()

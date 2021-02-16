@@ -38,6 +38,7 @@ browserRuntimeBuildType = 'Debug'
 
 root = os.path.dirname(os.path.abspath(__file__)) + '/'
 cmakeInstall = root + 'install/cmake/'
+llvmProjectBuild = root + 'build/llvm-project-' + llvmBuildType + '/'
 llvmBuild = root + 'build/llvm-' + llvmBuildType + '/'
 llvmInstall = root + 'install/llvm-' + llvmBuildType + '/'
 llvmBrowserBuild = root + 'build/llvm-browser-' + llvmBrowserBuildType + '/'
@@ -149,6 +150,7 @@ def download(url, basename=None):
         run('cd download && wget ' + url + ' -O ' + basename)
 
 repos = [
+    ('repos/llvm-project', 'llvm/llvm-project.git', 'llvm/llvm-project.git', False, 'main', 'main'),
     ('repos/llvm', 'tbfleming/cib-llvm.git', 'llvm-mirror/llvm.git', True, 'master', 'cib'),
     ('repos/llvm/tools/clang', 'tbfleming/cib-clang.git', 'llvm-mirror/clang.git', True, 'master', 'cib'),
     ('repos/llvm/tools/lld', 'tbfleming/cib-lld.git', 'llvm-mirror/lld.git', True, 'master', 'master'),
@@ -174,13 +176,13 @@ def clone():
         run('cd ' + path + ' && git checkout ' + branch)
 
 def cmake():
-    download('https://cmake.org/files/v3.11/cmake-3.11.0.tar.gz')
-    if not os.path.exists('build/cmake-3.11.0'):
+    download('https://github.com/Kitware/CMake/releases/download/v3.19.5/cmake-3.19.5.tar.gz')
+    if not os.path.exists('build/cmake-3.19.5'):
         run('mkdir -p build')
-        run('cd build && tar xf ../download/cmake-3.11.0.tar.gz')
-        run('cd build/cmake-3.11.0 && ./bootstrap --prefix=' + cmakeInstall + ' --parallel=' + cores)
-        run('cd build/cmake-3.11.0 && make ' + parallel)
-        run('cd build/cmake-3.11.0 && make install ' + parallel)
+        run('cd build && tar xf ../download/cmake-3.19.5.tar.gz')
+        run('cd build/cmake-3.19.5 && ./bootstrap --prefix=' + cmakeInstall + ' --parallel=' + cores)
+        run('cd build/cmake-3.19.5 && make ' + parallel)
+        run('cd build/cmake-3.19.5 && make install ' + parallel)
 
 def llvm():
     if not os.path.isdir(llvmBuild):
@@ -188,9 +190,8 @@ def llvm():
         run('cd ' + llvmBuild + ' && time -p cmake -G "Ninja"' +
             ' -DCMAKE_INSTALL_PREFIX=' + llvmInstall +
             ' -DCMAKE_BUILD_TYPE=' + llvmBuildType +
-            ' -DLLVM_TARGETS_TO_BUILD=X86' +
-            ' -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly' +
-            ' ' + root + 'repos/llvm')
+            ' -DLLVM_TARGETS_TO_BUILD="X86;WebAssembly"' +
+            ' ' + root + 'repos/llvm-project/llvm')
     run('cd ' + llvmBuild + ' && time -p ninja')
     if not os.path.isdir(llvmInstall):
         run('mkdir -p ' + llvmInstall)

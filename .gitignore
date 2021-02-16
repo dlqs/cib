@@ -7,3 +7,5 @@ download
 *.wat
 *.wasm
 *.wast
+
+logs.txt

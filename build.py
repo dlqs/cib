@@ -125,6 +125,9 @@ os.environ['npm_config_userconfig'] = root + "build/.npmrc"
 
 def run(args):
     print('build.py:', args)
+    with open('logs.txt', 'a') as f:
+        f.write('build.py: ' + args)
+        f.write('\n')
     if subprocess.call(args, shell=True):
         print('build.py: exiting because of error')
         sys.exit(1)
